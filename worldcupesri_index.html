@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, width=device-width" />
+  <title>ArcGIS Map + GeoJSON</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.33/esri/themes/light/main.css" />
+  <style>
+    html, body, #viewDiv { height: 100%; margin: 0; padding: 0; }
+  </style>
+</head>
+<body>
+  <div id="viewDiv"></div>
+
+  <script type="module">
+    import { createMap } from "./worldcupesri_map.js";
+
+    const { addGeoJSONFromUrl, addGeoJSONFromObject } = await createMap("viewDiv", {
+      // Set your API key in localStorage as ARCGIS_API_KEY or pass it here
+      // apiKey: "YOUR_API_KEY",
+      basemap: "hybrid",
+      center: [-98.5795, 39.8283],
+      zoom: 4
+    });
+
+    // Miami reference
+    const miami = { lon: -80.1918, lat: 25.7617 };
+
+    function createCircleGeoJSON(centerLon, centerLat, radiusKm, steps = 64, properties = {}) {
+      const toRad = d => d * Math.PI / 180;
+      const cosLat = Math.cos(toRad(centerLat));
+      const deltaLat = radiusKm / 111.0; // ~km per degree latitude
+      const deltaLonBase = radiusKm / (111.0 * (cosLat || 1e-6));
+      const ring = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = (i / steps) * Math.PI * 2;
+        const lon = centerLon + deltaLonBase * Math.cos(t);
+        const lat = centerLat + deltaLat * Math.sin(t);
+        ring.push([lon, lat]);
+      }
+      return {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties,
+            geometry: { type: "Polygon", coordinates: [ring] }
+          }
+        ]
+      };
+    }
+
+    // TFR polygon (approx 25 km radius circle around Miami)
+    const tfrGeojson = createCircleGeoJSON(miami.lon, miami.lat, 25, 96, {
+      name: "TFR - Miami",
+      ZoneCommander: "Miami ATC",
+      Status: "Active"
+    });
+    await addGeoJSONFromObject(tfrGeojson, {
+      title: "TFR - Miami",
+      renderer: {
+        type: "simple",
+        symbol: {
+          type: "simple-fill",
+          color: [227, 66, 52, 0.25],
+          outline: { color: [227, 66, 52, 1], width: 2 }
+        }
+      },
+      popupTemplate: {
+        title: "{name}",
+        content: [
+          {
+            type: "fields",
+            fieldInfos: [
+              { fieldName: "ZoneCommander", label: "Zone Commander" },
+              { fieldName: "Status", label: "Status" }
+            ]
+          }
+        ]
+      },
+      labelingInfo: [
+        {
+          labelPlacement: "center-center",
+          labelExpressionInfo: { expression: "$feature.name" },
+          symbol: {
+            type: "text",
+            color: "white",
+            haloColor: "black",
+            haloSize: 1,
+            font: { size: 12, weight: "bold" }
+          }
+        }
+      ]
+    });
+
+    // AOR 1 polygon (east of Miami, over the Atlantic)
+    const aor1 = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { name: "AOR 1", ZoneCommander: "AOR 1 Lead", Status: "Monitoring" },
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [-79.95, 25.60],
+              [-79.50, 25.60],
+              [-79.50, 26.00],
+              [-79.95, 26.00],
+              [-79.95, 25.60]
+            ]]
+          }
+        }
+      ]
+    };
+    await addGeoJSONFromObject(aor1, {
+      title: "AOR 1",
+      renderer: {
+        type: "simple",
+        symbol: {
+          type: "simple-fill",
+          color: [0, 112, 255, 0.25],
+          outline: { color: [0, 112, 255, 1], width: 2 }
+        }
+      },
+      popupTemplate: {
+        title: "{name}",
+        content: [
+          {
+            type: "fields",
+            fieldInfos: [
+              { fieldName: "ZoneCommander", label: "Zone Commander" },
+              { fieldName: "Status", label: "Status" }
+            ]
+          }
+        ]
+      },
+      labelingInfo: [
+        {
+          labelPlacement: "center-center",
+          labelExpressionInfo: { expression: "$feature.name" },
+          symbol: {
+            type: "text",
+            color: "white",
+            haloColor: "black",
+            haloSize: 1,
+            font: { size: 12, weight: "bold" }
+          }
+        }
+      ]
+    });
+
+    // AOR 2 polygon (east/southeast of Miami, over the Atlantic)
+    const aor2 = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { name: "AOR 2", ZoneCommander: "AOR 2 Lead", Status: "Standby" },
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [-79.90, 25.20],
+              [-79.40, 25.20],
+              [-79.40, 25.50],
+              [-79.90, 25.50],
+              [-79.90, 25.20]
+            ]]
+          }
+        }
+      ]
+    };
+    await addGeoJSONFromObject(aor2, {
+      title: "AOR 2",
+      renderer: {
+        type: "simple",
+        symbol: {
+          type: "simple-fill",
+          color: [46, 204, 113, 0.25],
+          outline: { color: [46, 204, 113, 1], width: 2 }
+        }
+      },
+      popupTemplate: {
+        title: "{name}",
+        content: [
+          {
+            type: "fields",
+            fieldInfos: [
+              { fieldName: "ZoneCommander", label: "Zone Commander" },
+              { fieldName: "Status", label: "Status" }
+            ]
+          }
+        ]
+      },
+      labelingInfo: [
+        {
+          labelPlacement: "center-center",
+          labelExpressionInfo: { expression: "$feature.name" },
+          symbol: {
+            type: "text",
+            color: "white",
+            haloColor: "black",
+            haloSize: 1,
+            font: { size: 12, weight: "bold" }
+          }
+        }
+      ]
+    });
+
+  </script>
+</body>
+</html>
+
+
